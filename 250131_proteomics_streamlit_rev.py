@@ -46,34 +46,21 @@ if main_file and tool_a_file and tool_b_file:
         # Classification function
         def classify_simplified_semi_tryptic(protein_sequence, peptide):
             if pd.isna(protein_sequence) or pd.isna(peptide):
-                return "no_simplified_semi_tryptic"
+                return False
             
             index = protein_sequence.find(peptide)
             if index == -1:
-                return "no_simplified_semi_tryptic"
+                return False
 
             if peptide[-1] in ['K', 'R']:
                 if index == 0 or protein_sequence[index - 1] not in ['K', 'R']:
-                    return "simplified_semi_tryptic"
+                    return True
             
             if peptide[-1] not in ['K', 'R']:
                 if index > 0 and protein_sequence[index - 1] in ['K', 'R']:
-                    return "simplified_semi_tryptic"
+                    return True
 
-            return "no_simplified_semi_tryptic"
-
-        # Classify peptides
-        simplified_semi_tryptic_counts = {"TOOL-A": 0, "TOOL-B": 0}
-        
-        def classify_and_count(peptides, tool):
-            count = 0
-            for pep in peptides:
-                if classify_simplified_semi_tryptic(sequence, pep) == "simplified_semi_tryptic":
-                    count += 1
-            simplified_semi_tryptic_counts[tool] = count
-
-        classify_and_count(peptides_a, "TOOL-A")
-        classify_and_count(peptides_b, "TOOL-B")
+            return False
 
         # Toggle buttons for highlighting
         if "highlight_a" not in st.session_state:
@@ -90,10 +77,12 @@ if main_file and tool_a_file and tool_b_file:
         def highlight_sequence(seq, peptides_a, peptides_b):
             for pep in peptides_a:
                 if isinstance(pep, str):
-                    seq = re.sub(f"({pep})", f"<span style='background-color:red;'>{pep}</span>", seq)
+                    style = "text-decoration: underline;" if classify_simplified_semi_tryptic(seq, pep) else "background-color:red;"
+                    seq = re.sub(f"({pep})", f"<span style='{style}'>{pep}</span>", seq)
             for pep in peptides_b:
                 if isinstance(pep, str):
-                    seq = re.sub(f"({pep})", f"<span style='color:blue; font-weight:bold;'>{pep}</span>", seq)
+                    style = "text-decoration: underline;" if classify_simplified_semi_tryptic(seq, pep) else "color:blue; font-weight:bold;"
+                    seq = re.sub(f"({pep})", f"<span style='{style}'>{pep}</span>", seq)
             return seq
 
         # Apply highlighting
@@ -105,62 +94,20 @@ if main_file and tool_a_file and tool_b_file:
         # Highlight K and R responsible for classification in red
         highlighted_seq = re.sub(r'([KR])', r"<span style='color:red; font-weight:bold;'>\1</span>", highlighted_seq)
 
-        # Coverage calculation
-        def calculate_coverage(seq, peptides):
-            covered_positions = set()
-            for pep in peptides:
-                if isinstance(pep, str):
-                    start_idx = 0
-                    while (start_idx := seq.find(pep, start_idx)) != -1:
-                        covered_positions.update(range(start_idx, start_idx + len(pep)))
-                        start_idx += 1  
-            return (len(covered_positions) / len(seq)) * 100 if len(seq) > 0 else 0
-
-        coverage_a = calculate_coverage(sequence, peptides_a) if st.session_state["highlight_a"] else 0
-        coverage_b = calculate_coverage(sequence, peptides_b) if st.session_state["highlight_b"] else 0
-        total_coverage = calculate_coverage(sequence, list(peptides_a) + list(peptides_b))
-
         # Display highlighted sequence
         st.subheader("Highlighted Protein Sequence")
         st.markdown(f"""<div style='font-family:monospace; font-size:18px; white-space:pre-wrap; word-wrap:break-word;'>{highlighted_seq}</div>""", unsafe_allow_html=True)
-
-        # Display coverage
-        st.subheader("Coverage")
-        st.write(f"Coverage TOOL-A: {coverage_a:.2f}%")
-        st.write(f"Coverage TOOL-B: {coverage_b:.2f}%")
-        st.write(f"Total Coverage: {total_coverage:.2f}%")
-
-        # Coverage visualization
-        fig, ax = plt.subplots(figsize=(18, 2))
-        bars = ax.barh(["TOOL-A", "TOOL-B", "Total"], [coverage_a, coverage_b, total_coverage], color=["red", "blue", "green"])
-        for bar in bars:
-            width = bar.get_width()
-            ax.text(width + 1, bar.get_y() + bar.get_height()/2, f'{width:.2f}%', va='center')
-        ax.set_xlabel("Coverage (%)")
-        ax.set_title("Coverage Comparison")
-        ax.set_xlim(0, 100)
-        st.pyplot(fig)
-
-        # Display Simplified-Semi-Tryptic Count
-        st.subheader("Simplified-Semi-Tryptic Count")
-        st.write(f"Coverage TOOL-A: {simplified_semi_tryptic_counts["TOOL-A"]:.2f}%")
-        st.write(f"Coverage TOOL-B: {simplified_semi_tryptic_counts["TOOL-B"]:.2f}%")
-        st.write(f"Total Coverage: {simplified_semi_tryptic_counts["TOOL-A"]+simplified_semi_tryptic_counts["TOOL-B"]:.2f}%")
         
-        # # Simplified-Semi-Tryptic Histogram
-        # st.subheader("Simplified-Semi-Tryptic Peptide Count")
-        # fig, ax = plt.subplots()
-        # ax.bar(["TOOL-A", "TOOL-B"], [simplified_semi_tryptic_counts["TOOL-A"], simplified_semi_tryptic_counts["TOOL-B"]], color=["red", "blue"])
-        # ax.set_ylabel("Count")
-        # ax.set_title("Simplified-Semi-Tryptic Peptide Count by Tool")
-        # st.pyplot(fig)
-
-        # Coverage visualization
-        fig, ax = plt.subplots(figsize=(18, 2))
-        bars = ax.barh(["TOOL-A", "TOOL-B", "Total"], [simplified_semi_tryptic_counts["TOOL-A"], simplified_semi_tryptic_counts["TOOL-B"], simplified_semi_tryptic_counts["TOOL-A"]+simplified_semi_tryptic_counts["TOOL-B"]], color=["red", "blue", "green"])
-        for bar in bars:
-            width = bar.get_width()
-            ax.text(width + 1, bar.get_y() + bar.get_height()/2, f'{width:.0f}', va='center')
-        ax.set_xlabel("Count")
-        ax.set_title("Simplified-Semi-Tryptic Peptide Count")
-        st.pyplot(fig)
+        # Create a table displaying Peptides, Coverage, and Sequence Length
+        peptide_data = []
+        for pep in peptides_a:
+            coverage = (len(pep) / len(sequence)) * 100
+            peptide_data.append([selected_protein, pep, coverage, len(sequence)])
+        for pep in peptides_b:
+            coverage = (len(pep) / len(sequence)) * 100
+            peptide_data.append([selected_protein, pep, coverage, len(sequence)])
+        
+        df_peptide_data = pd.DataFrame(peptide_data, columns=["ProteinName", "Peptide", "Coverage", "Sequence Length"])
+        
+        st.subheader("Peptide Coverage Table")
+        st.dataframe(df_peptide_data)
