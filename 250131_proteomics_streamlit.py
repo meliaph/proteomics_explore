@@ -97,7 +97,7 @@ if main_file and tool_a_file and tool_b_file:
         st.write(f"Total Coverage: {total_coverage:.2f}%")
         
         # Coverage visualization (horizontal bar chart)
-        fig, ax = plt.subplots(figsize=(27, 6))
+        fig, ax = plt.subplots(figsize=(18, 2))
         bars = ax.barh(["TOOL-A", "TOOL-B", "Total"], [coverage_a, coverage_b, total_coverage], color=["red", "blue", "green"])
         
         # Annotate the bars with their values
