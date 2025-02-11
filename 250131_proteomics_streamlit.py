@@ -1,76 +1,87 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
+import re
+from functools import reduce
 
-# Load the original protein sequences and TOOL-A/TOOL-B results
-uploaded_fasta = st.file_uploader("Upload Original Fasta Data CSV", type=["csv"])
-uploaded_tool_a = st.file_uploader("Upload TOOL-A Results CSV", type=["csv"])
-uploaded_tool_b = st.file_uploader("Upload TOOL-B Results CSV", type=["csv"])
+# Streamlit app title
+st.title("Protein Sequence Visualization")
 
-# Read the CSV files
-if uploaded_fasta is not None:
-    df = pd.read_csv(uploaded_fasta)
-    st.write("Original Fasta Data Preview", df.head())
+# File uploaders
+main_file = st.file_uploader("Upload Main Data CSV", type=["csv"])
+tool_a_file = st.file_uploader("Upload TOOL-A CSV", type=["csv"])
+tool_b_file = st.file_uploader("Upload TOOL-B CSV", type=["csv"])
 
-if uploaded_tool_a is not None:
-    tool_a_df = pd.read_csv(uploaded_tool_a)
-    st.write("TOOL-A Data Preview", tool_a_df.head())
+if main_file and tool_a_file and tool_b_file:
+    # Read CSV files
+    main_df = pd.read_csv(main_file)
+    tool_a_df = pd.read_csv(tool_a_file)
+    tool_b_df = pd.read_csv(tool_b_file)
 
-if uploaded_tool_b is not None:
-    tool_b_df = pd.read_csv(uploaded_tool_b)
-    st.write("TOOL-B Data Preview", tool_b_df.head())
+    # Display data samples
+    st.subheader("Main Data Sample")
+    st.dataframe(main_df.head())
 
-# Merge the original fasta data with TOOL-A and TOOL-B results based on ProteinName
-merged_tool_a = pd.merge(df[['ProteinName', 'Sequence']], tool_a_df[['ProteinName', 'Peptides_A']], on='ProteinName', how='left')
-merged_tool_b = pd.merge(df[['ProteinName', 'Sequence']], tool_b_df[['ProteinName', 'Peptides_B']], on='ProteinName', how='left')
+    col1, col2 = st.columns(2)
+    with col1:
+        st.subheader("TOOL-A Sample")
+        st.dataframe(tool_a_df.head())
+    with col2:
+        st.subheader("TOOL-B Sample")
+        st.dataframe(tool_b_df.head())
 
-# Function to calculate the coverage of a peptide in the protein sequence
-def calculate_coverage(protein_sequence, peptide_sequence):
-    peptide_length = len(peptide_sequence)
-    protein_length = len(protein_sequence)
+    # Merge data on ProteinName
+    merged_df = reduce(lambda left, right: pd.merge(left, right, on="ProteinName", how="left"), 
+                       [main_df, tool_a_df, tool_b_df])
     
-    # Count how many times the peptide appears in the protein sequence
-    count = protein_sequence.count(peptide_sequence)
-    coverage = count * peptide_length / protein_length
-    return coverage
-
-# Initialize lists to store coverage values
-coverage_a = []
-coverage_b = []
-
-# Iterate over TOOL-A results to calculate coverage
-for idx, row in merged_tool_a.iterrows():
-    protein_name = row['ProteinName']
-    peptide_a = row['Peptides_A']
-    full_sequence = row['Sequence']
+    # Dropdown for protein selection
+    selected_protein = st.selectbox("Select a Protein Name", merged_df["ProteinName"].dropna().unique())
     
-    # Calculate coverage for each peptide found by TOOL-A
-    if pd.notna(peptide_a):  # Avoid NaN values
-        coverage_a.append(calculate_coverage(full_sequence, peptide_a))
-    else:
-        coverage_a.append(0)
-
-# Iterate over TOOL-B results to calculate coverage
-for idx, row in merged_tool_b.iterrows():
-    protein_name = row['ProteinName']
-    peptide_b = row['Peptides_B']
-    full_sequence = row['Sequence']
+    # Extract sequence and peptides
+    sequence = merged_df.loc[merged_df["ProteinName"] == selected_protein, "Sequence"].values[0]
+    peptides_a = merged_df.loc[merged_df["ProteinName"] == selected_protein, "Peptides_A"].dropna().unique()
+    peptides_b = merged_df.loc[merged_df["ProteinName"] == selected_protein, "Peptides_B"].dropna().unique()
     
-    # Calculate coverage for each peptide found by TOOL-B
-    if pd.notna(peptide_b):  # Avoid NaN values
-        coverage_b.append(calculate_coverage(full_sequence, peptide_b))
-    else:
-        coverage_b.append(0)
-
-# Add coverage columns to merged dataframes
-merged_tool_a['Coverage_A'] = coverage_a
-merged_tool_b['Coverage_B'] = coverage_b
-
-# Aggregate coverage per ProteinName (average coverage for each protein)
-final_aggregated_df = pd.merge(merged_tool_a[['ProteinName', 'Coverage_A']], merged_tool_b[['ProteinName', 'Coverage_B']], on='ProteinName', how='left')
-
-# Calculate average coverage for each tool
-final_aggregated_df['Average_Coverage_A'] = final_aggregated_df['Coverage_A']
-final_aggregated_df['Average_Coverage_B'] = final_aggregated_df['Coverage_B']
-
-# Final visualization
-st.write("Final Aggregated Coverage Data", final_aggregated_df.head())
+    # Initialize state for highlighting
+    if "highlight_a" not in st.session_state:
+        st.session_state["highlight_a"] = False
+    if "highlight_b" not in st.session_state:
+        st.session_state["highlight_b"] = False
+    
+    # Toggle buttons for highlighting
+    if st.button("Highlight Peptides_A"):
+        st.session_state["highlight_a"] = not st.session_state["highlight_a"]
+    if st.button("Highlight Peptides_B"):
+        st.session_state["highlight_b"] = not st.session_state["highlight_b"]
+    
+    # Function to highlight sequence
+    def highlight_sequence(seq, peptides, color):
+        for pep in peptides:
+            if isinstance(pep, str):  # Ensure peptide is a string
+                seq = re.sub(f"({pep})", f"<span style='background-color:{color};'>{pep}</span>", seq)
+        return seq
+    
+    # Apply highlighting
+    highlighted_seq = sequence
+    if st.session_state["highlight_a"]:
+        highlighted_seq = highlight_sequence(highlighted_seq, peptides_a, "yellow")
+    if st.session_state["highlight_b"]:
+        highlighted_seq = highlight_sequence(highlighted_seq, peptides_b, "lightblue")
+    
+    # Coverage calculation
+    def calculate_coverage(seq, peptides):
+        covered = sum(len(pep) for pep in peptides if isinstance(pep, str) and pep in seq)
+        return (covered / len(seq)) * 100 if len(seq) > 0 else 0
+    
+    coverage_a = calculate_coverage(sequence, peptides_a) if st.session_state["highlight_a"] else 0
+    coverage_b = calculate_coverage(sequence, peptides_b) if st.session_state["highlight_b"] else 0
+    total_coverage = coverage_a + coverage_b
+    
+    # Display sequence with highlighting
+    st.subheader("Highlighted Protein Sequence")
+    st.markdown(f"""<div style='font-family:monospace; white-space:pre-wrap;'>{highlighted_seq}</div>""", unsafe_allow_html=True)
+    
+    # Display coverage
+    st.subheader("Coverage")
+    st.write(f"Coverage TOOL-A: {coverage_a:.2f}%")
+    st.write(f"Coverage TOOL-B: {coverage_b:.2f}%")
+    st.write(f"Total Coverage: {total_coverage:.2f}%")
