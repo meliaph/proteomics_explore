@@ -59,7 +59,7 @@ if main_file and tool_a_file and tool_b_file:
         def highlight_sequence(seq, peptides_a, peptides_b):
             for pep in peptides_a:
                 if isinstance(pep, str):
-                    seq = re.sub(f"({pep})", f"<span style='background-color:yellow;'>{pep}</span>", seq)
+                    seq = re.sub(f"({pep})", f"<span style='background-color:red;'>{pep}</span>", seq)
             for pep in peptides_b:
                 if isinstance(pep, str):
                     seq = re.sub(f"({pep})", f"<span style='color:blue; font-weight:bold;'>{pep}</span>", seq)
@@ -94,7 +94,7 @@ if main_file and tool_a_file and tool_b_file:
         
         # Coverage visualization
         fig, ax = plt.subplots()
-        ax.bar(["TOOL-A", "TOOL-B", "Total"], [coverage_a, coverage_b, total_coverage], color=["yellow", "blue", "green"])
+        ax.bar(["TOOL-A", "TOOL-B", "Total"], [coverage_a, coverage_b, total_coverage], color=["red", "blue", "green"])
         ax.set_ylabel("Coverage (%)")
         ax.set_title("Coverage Comparison")
         ax.set_ylim(0, 100)
