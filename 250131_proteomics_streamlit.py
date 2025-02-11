@@ -71,18 +71,24 @@ if main_file and tool_a_file and tool_b_file:
             highlighted_seq = highlight_sequence(sequence, peptides_a if st.session_state["highlight_a"] else [], 
                                                  peptides_b if st.session_state["highlight_b"] else [])
         
-        # Coverage calculation
+        # Coverage calculation (Avoid Overlapping Counts)
         def calculate_coverage(seq, peptides):
-            covered = sum(len(pep) for pep in peptides if isinstance(pep, str) and pep in seq)
-            return (covered / len(seq)) * 100 if len(seq) > 0 else 0
+            covered_positions = set()
+            for pep in peptides:
+                if isinstance(pep, str):
+                    start_idx = 0
+                    while (start_idx := seq.find(pep, start_idx)) != -1:
+                        covered_positions.update(range(start_idx, start_idx + len(pep)))
+                        start_idx += 1  # Move forward to find other occurrences
+            return (len(covered_positions) / len(seq)) * 100 if len(seq) > 0 else 0
         
         coverage_a = calculate_coverage(sequence, peptides_a) if st.session_state["highlight_a"] else 0
         coverage_b = calculate_coverage(sequence, peptides_b) if st.session_state["highlight_b"] else 0
-        total_coverage = coverage_a + coverage_b
+        total_coverage = calculate_coverage(sequence, list(peptides_a) + list(peptides_b))
         
         # Display sequence with highlighting
         st.subheader("Highlighted Protein Sequence")
-        st.markdown(f"""<div style='font-family:monospace; font-size:16px; white-space:pre-wrap; word-wrap:break-word;'>{highlighted_seq}</div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div style='font-family:monospace; font-size:18px; white-space:pre-wrap; word-wrap:break-word;'>{highlighted_seq}</div>""", unsafe_allow_html=True)
         
         # Display coverage
         st.subheader("Coverage")
@@ -95,4 +101,5 @@ if main_file and tool_a_file and tool_b_file:
         ax.bar(["TOOL-A", "TOOL-B", "Total"], [coverage_a, coverage_b, total_coverage], color=["yellow", "blue", "green"])
         ax.set_ylabel("Coverage (%)")
         ax.set_title("Coverage Comparison")
+        ax.set_ylim(0, 100)
         st.pyplot(fig)
