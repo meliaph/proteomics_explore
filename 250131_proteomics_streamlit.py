@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import re
+import matplotlib.pyplot as plt
 from functools import reduce
 
 # Streamlit app title
@@ -61,7 +62,7 @@ if main_file and tool_a_file and tool_b_file:
                     seq = re.sub(f"({pep})", f"<span style='background-color:yellow;'>{pep}</span>", seq)
             for pep in peptides_b:
                 if isinstance(pep, str):
-                    seq = re.sub(f"({pep})", f"<span style='color:blue;'>{pep}</span>", seq)
+                    seq = re.sub(f"({pep})", f"<span style='color:blue; font-weight:bold;'>{pep}</span>", seq)
             return seq
         
         # Apply highlighting
@@ -81,10 +82,17 @@ if main_file and tool_a_file and tool_b_file:
         
         # Display sequence with highlighting
         st.subheader("Highlighted Protein Sequence")
-        st.markdown(f"""<div style='font-family:monospace; white-space:pre-wrap; word-wrap:break-word;'>{highlighted_seq}</div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div style='font-family:monospace; font-size:16px; white-space:pre-wrap; word-wrap:break-word;'>{highlighted_seq}</div>""", unsafe_allow_html=True)
         
         # Display coverage
         st.subheader("Coverage")
         st.write(f"Coverage TOOL-A: {coverage_a:.2f}%")
         st.write(f"Coverage TOOL-B: {coverage_b:.2f}%")
         st.write(f"Total Coverage: {total_coverage:.2f}%")
+        
+        # Coverage visualization
+        fig, ax = plt.subplots()
+        ax.bar(["TOOL-A", "TOOL-B", "Total"], [coverage_a, coverage_b, total_coverage], color=["yellow", "blue", "green"])
+        ax.set_ylabel("Coverage (%)")
+        ax.set_title("Coverage Comparison")
+        st.pyplot(fig)
