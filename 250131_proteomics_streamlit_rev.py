@@ -147,20 +147,20 @@ if main_file and tool_a_file and tool_b_file:
         st.write(f"Coverage TOOL-B: {simplified_semi_tryptic_counts["TOOL-B"]:.2f}%")
         st.write(f"Total Coverage: {simplified_semi_tryptic_counts["TOOL-A"]+simplified_semi_tryptic_counts["TOOL-B"]:.2f}%")
         
-        # Simplified-Semi-Tryptic Histogram
-        st.subheader("Simplified-Semi-Tryptic Peptide Count")
-        fig, ax = plt.subplots()
-        ax.bar(["TOOL-A", "TOOL-B"], [simplified_semi_tryptic_counts["TOOL-A"], simplified_semi_tryptic_counts["TOOL-B"]], color=["red", "blue"])
-        ax.set_ylabel("Count")
-        ax.set_title("Simplified-Semi-Tryptic Peptide Count by Tool")
-        st.pyplot(fig)
+        # # Simplified-Semi-Tryptic Histogram
+        # st.subheader("Simplified-Semi-Tryptic Peptide Count")
+        # fig, ax = plt.subplots()
+        # ax.bar(["TOOL-A", "TOOL-B"], [simplified_semi_tryptic_counts["TOOL-A"], simplified_semi_tryptic_counts["TOOL-B"]], color=["red", "blue"])
+        # ax.set_ylabel("Count")
+        # ax.set_title("Simplified-Semi-Tryptic Peptide Count by Tool")
+        # st.pyplot(fig)
 
         # Coverage visualization
         fig, ax = plt.subplots(figsize=(18, 2))
         bars = ax.barh(["TOOL-A", "TOOL-B", "Total"], [simplified_semi_tryptic_counts["TOOL-A"], simplified_semi_tryptic_counts["TOOL-B"], simplified_semi_tryptic_counts["TOOL-A"]+simplified_semi_tryptic_counts["TOOL-B"]], color=["red", "blue", "green"])
         for bar in bars:
             width = bar.get_width()
-            ax.text(width + 1, bar.get_y() + bar.get_height()/2, f'{width:.2f}%', va='center')
+            ax.text(width + 1, bar.get_y() + bar.get_height()/2, f'{width:.2f}', va='center')
         ax.set_xlabel("Count")
         ax.set_title("Simplified-Semi-Tryptic Peptide Count")
         st.pyplot(fig)
