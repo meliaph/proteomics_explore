@@ -90,7 +90,7 @@ if main_file and tool_a_file and tool_b_file:
         def highlight_sequence(seq, peptides_a, peptides_b):
             for pep in peptides_a:
                 if isinstance(pep, str):
-                    seq = re.sub(f"({pep})", f"<span style='background-color:green;'>{pep}</span>", seq)
+                    seq = re.sub(f"({pep})", f"<span style='background-color:red;'>{pep}</span>", seq)
             for pep in peptides_b:
                 if isinstance(pep, str):
                     seq = re.sub(f"({pep})", f"<span style='color:blue; font-weight:bold;'>{pep}</span>", seq)
@@ -103,7 +103,7 @@ if main_file and tool_a_file and tool_b_file:
                                                  peptides_b if st.session_state["highlight_b"] else [])
 
         # Highlight K and R responsible for classification in red
-        highlighted_seq = re.sub(r'([KR])', r"<span style='color:red; font-weight:bold;'>\1</span>", highlighted_seq)
+        highlighted_seq = re.sub(r'([KR])', r"<span style='color:green; font-weight:bold;'>\1</span>", highlighted_seq)
 
         # Coverage calculation
         def calculate_coverage(seq, peptides):
