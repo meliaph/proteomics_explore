@@ -1,17 +1,16 @@
-import streamlit as st
 import pandas as pd
+import streamlit as st
 
-# Streamlit interface
-st.title('Proteomics Data Visualization')
-
-# Upload CSV files
-st.subheader("Upload the CSV files")
-
+# Load the original protein sequences and TOOL-A/TOOL-B results
+uploaded_fasta = st.file_uploader("Upload Original Fasta Data CSV", type=["csv"])
 uploaded_tool_a = st.file_uploader("Upload TOOL-A Results CSV", type=["csv"])
 uploaded_tool_b = st.file_uploader("Upload TOOL-B Results CSV", type=["csv"])
-uploaded_aggregated = st.file_uploader("Upload Final Aggregated Results CSV", type=["csv"])
 
-# Check if files are uploaded and read them
+# Read the CSV files
+if uploaded_fasta is not None:
+    df = pd.read_csv(uploaded_fasta)
+    st.write("Original Fasta Data Preview", df.head())
+
 if uploaded_tool_a is not None:
     tool_a_df = pd.read_csv(uploaded_tool_a)
     st.write("TOOL-A Data Preview", tool_a_df.head())
@@ -20,55 +19,58 @@ if uploaded_tool_b is not None:
     tool_b_df = pd.read_csv(uploaded_tool_b)
     st.write("TOOL-B Data Preview", tool_b_df.head())
 
-if uploaded_aggregated is not None:
-    final_aggregated_df = pd.read_csv(uploaded_aggregated)
-    st.write("Final Aggregated Data Preview", final_aggregated_df.head())
+# Merge the original fasta data with TOOL-A and TOOL-B results based on ProteinName
+merged_tool_a = pd.merge(df[['ProteinName', 'Sequence']], tool_a_df[['ProteinName', 'Peptides_A']], on='ProteinName', how='left')
+merged_tool_b = pd.merge(df[['ProteinName', 'Sequence']], tool_b_df[['ProteinName', 'Peptides_B']], on='ProteinName', how='left')
 
-# If the required data is uploaded, proceed with visualization
-if uploaded_tool_a is not None and uploaded_tool_b is not None and uploaded_aggregated is not None:
-    # Merge dataframes with the final aggregated result
-    merged_tool_a = pd.merge(final_aggregated_df[['ProteinName', 'Coverage_A']], tool_a_df[['ProteinName', 'Peptides_A']], on='ProteinName', how='left')
-    merged_tool_b = pd.merge(final_aggregated_df[['ProteinName', 'Coverage_B']], tool_b_df[['ProteinName', 'Peptides_B']], on='ProteinName', how='left')
+# Function to calculate the coverage of a peptide in the protein sequence
+def calculate_coverage(protein_sequence, peptide_sequence):
+    peptide_length = len(peptide_sequence)
+    protein_length = len(protein_sequence)
+    
+    # Count how many times the peptide appears in the protein sequence
+    count = protein_sequence.count(peptide_sequence)
+    coverage = count * peptide_length / protein_length
+    return coverage
 
-    # Dropdown to select ProteinName
-    protein_name = st.selectbox('Select Protein', final_aggregated_df['ProteinName'].unique())
+# Initialize lists to store coverage values
+coverage_a = []
+coverage_b = []
 
-    # Filter data for the selected protein
-    protein_data = final_aggregated_df[final_aggregated_df['ProteinName'] == protein_name].iloc[0]
+# Iterate over TOOL-A results to calculate coverage
+for idx, row in merged_tool_a.iterrows():
+    protein_name = row['ProteinName']
+    peptide_a = row['Peptides_A']
+    full_sequence = row['Sequence']
+    
+    # Calculate coverage for each peptide found by TOOL-A
+    if pd.notna(peptide_a):  # Avoid NaN values
+        coverage_a.append(calculate_coverage(full_sequence, peptide_a))
+    else:
+        coverage_a.append(0)
 
-    # Get the full sequence and peptides for TOOL-A and TOOL-B
-    sequence = protein_data['Sequence']
-    peptides_a = merged_tool_a[merged_tool_a['ProteinName'] == protein_name]['Peptides_A'].values[0].split(',')
-    peptides_b = merged_tool_b[merged_tool_b['ProteinName'] == protein_name]['Peptides_B'].values[0].split(',')
+# Iterate over TOOL-B results to calculate coverage
+for idx, row in merged_tool_b.iterrows():
+    protein_name = row['ProteinName']
+    peptide_b = row['Peptides_B']
+    full_sequence = row['Sequence']
+    
+    # Calculate coverage for each peptide found by TOOL-B
+    if pd.notna(peptide_b):  # Avoid NaN values
+        coverage_b.append(calculate_coverage(full_sequence, peptide_b))
+    else:
+        coverage_b.append(0)
 
-    # Display the full protein sequence
-    st.markdown(f"**Protein Sequence for {protein_name}:**")
-    st.text(sequence)
+# Add coverage columns to merged dataframes
+merged_tool_a['Coverage_A'] = coverage_a
+merged_tool_b['Coverage_B'] = coverage_b
 
-    # Option to display peptides from TOOL-A, TOOL-B, or both
-    show_tool_a = st.checkbox('Show TOOL-A Peptides')
-    show_tool_b = st.checkbox('Show TOOL-B Peptides')
+# Aggregate coverage per ProteinName (average coverage for each protein)
+final_aggregated_df = pd.merge(merged_tool_a[['ProteinName', 'Coverage_A']], merged_tool_b[['ProteinName', 'Coverage_B']], on='ProteinName', how='left')
 
-    highlighted_sequence = sequence
+# Calculate average coverage for each tool
+final_aggregated_df['Average_Coverage_A'] = final_aggregated_df['Coverage_A']
+final_aggregated_df['Average_Coverage_B'] = final_aggregated_df['Coverage_B']
 
-    # Highlight peptides in the sequence
-    if show_tool_a:
-        for peptide in peptides_a:
-            highlighted_sequence = highlighted_sequence.replace(peptide, f"<span style='background-color: yellow'>{peptide}</span>")
-
-    if show_tool_b:
-        for peptide in peptides_b:
-            highlighted_sequence = highlighted_sequence.replace(peptide, f"<span style='background-color: lightblue'>{peptide}</span>")
-
-    # Display the protein sequence with highlighted peptides
-    st.markdown(f"<div>{highlighted_sequence}</div>", unsafe_allow_html=True)
-
-    # Display the coverage for TOOL-A and TOOL-B
-    coverage_a = protein_data['Coverage_A']
-    coverage_b = protein_data['Coverage_B']
-
-    st.write(f"**Coverage for TOOL-A:** {coverage_a}%")
-    st.write(f"**Coverage for TOOL-B:** {coverage_b}%")
-
-    # Optionally, you can use bar charts to show comparison
-    st.bar_chart([coverage_a, coverage_b], use_container_width=True, height=200)
+# Final visualization
+st.write("Final Aggregated Coverage Data", final_aggregated_df.head())
