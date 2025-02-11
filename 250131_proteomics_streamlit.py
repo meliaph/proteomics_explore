@@ -86,6 +86,14 @@ if main_file and tool_a_file and tool_b_file:
         coverage_b = calculate_coverage(sequence, peptides_b) if st.session_state["highlight_b"] else 0
         total_coverage = calculate_coverage(sequence, list(peptides_a) + list(peptides_b))
         
+        # Coverage visualization
+        fig, ax = plt.subplots()
+        ax.bar(["TOOL-A", "TOOL-B", "Total"], [coverage_a, coverage_b, total_coverage], color=["yellow", "blue", "green"])
+        ax.set_ylabel("Coverage (%)")
+        ax.set_title("Coverage Comparison")
+        ax.set_ylim(0, 100)
+        st.pyplot(fig)
+        
         # Display sequence with highlighting
         st.subheader("Highlighted Protein Sequence")
         st.markdown(f"""<div style='font-family:monospace; font-size:18px; white-space:pre-wrap; word-wrap:break-word;'>{highlighted_seq}</div>""", unsafe_allow_html=True)
@@ -96,10 +104,4 @@ if main_file and tool_a_file and tool_b_file:
         st.write(f"Coverage TOOL-B: {coverage_b:.2f}%")
         st.write(f"Total Coverage: {total_coverage:.2f}%")
         
-        # Coverage visualization
-        fig, ax = plt.subplots()
-        ax.bar(["TOOL-A", "TOOL-B", "Total"], [coverage_a, coverage_b, total_coverage], color=["yellow", "blue", "green"])
-        ax.set_ylabel("Coverage (%)")
-        ax.set_title("Coverage Comparison")
-        ax.set_ylim(0, 100)
-        st.pyplot(fig)
+
