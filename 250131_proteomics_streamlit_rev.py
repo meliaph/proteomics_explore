@@ -160,7 +160,7 @@ if main_file and tool_a_file and tool_b_file:
         bars = ax.barh(["TOOL-A", "TOOL-B", "Total"], [simplified_semi_tryptic_counts["TOOL-A"], simplified_semi_tryptic_counts["TOOL-B"], simplified_semi_tryptic_counts["TOOL-A"]+simplified_semi_tryptic_counts["TOOL-B"]], color=["red", "blue", "green"])
         for bar in bars:
             width = bar.get_width()
-            ax.text(width + 1, bar.get_y() + bar.get_height()/2, f'{width:.2f}', va='center')
+            ax.text(width + 1, bar.get_y() + bar.get_height()/2, f'{width:.0f}', va='center')
         ax.set_xlabel("Count")
         ax.set_title("Simplified-Semi-Tryptic Peptide Count")
         st.pyplot(fig)
