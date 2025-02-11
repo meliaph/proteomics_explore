@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import re
 from functools import reduce
+import numpy as np
 
 # Streamlit app title
 st.title("Protein Sequence Visualization")
@@ -17,9 +18,18 @@ if main_file and tool_a_file and tool_b_file:
     tool_a_df = pd.read_csv(tool_a_file)
     tool_b_df = pd.read_csv(tool_b_file)
 
+    # Merge data on ProteinName
+    merged_df = reduce(lambda left, right: pd.merge(left, right, on="ProteinName", how="left"), 
+                       [main_df, tool_a_df, tool_b_df])
+    
+    # Select 100 random ProteinNames
+    unique_proteins = merged_df["ProteinName"].dropna().unique()
+    selected_proteins = np.random.choice(unique_proteins, min(100, len(unique_proteins)), replace=False)
+    filtered_df = merged_df[merged_df["ProteinName"].isin(selected_proteins)]
+    
     # Display data samples
     st.subheader("Main Data Sample")
-    st.dataframe(main_df.head())
+    st.dataframe(filtered_df.head())
 
     col1, col2 = st.columns(2)
     with col1:
@@ -28,19 +38,15 @@ if main_file and tool_a_file and tool_b_file:
     with col2:
         st.subheader("TOOL-B Sample")
         st.dataframe(tool_b_df.head())
-
-    # Merge data on ProteinName
-    merged_df = reduce(lambda left, right: pd.merge(left, right, on="ProteinName", how="left"), 
-                       [main_df, tool_a_df, tool_b_df])
     
     # Dropdown for protein selection
-    selected_protein = st.selectbox("Select a Protein Name", merged_df["ProteinName"].dropna().unique())
+    selected_protein = st.selectbox("Select a Protein Name", selected_proteins)
     
     if selected_protein:
         # Extract sequence and peptides
-        sequence = merged_df.loc[merged_df["ProteinName"] == selected_protein, "Sequence"].values[0]
-        peptides_a = merged_df.loc[merged_df["ProteinName"] == selected_protein, "Peptides_A"].dropna().unique()
-        peptides_b = merged_df.loc[merged_df["ProteinName"] == selected_protein, "Peptides_B"].dropna().unique()
+        sequence = filtered_df.loc[filtered_df["ProteinName"] == selected_protein, "Sequence"].values[0]
+        peptides_a = filtered_df.loc[filtered_df["ProteinName"] == selected_protein, "Peptides_A"].dropna().unique()
+        peptides_b = filtered_df.loc[filtered_df["ProteinName"] == selected_protein, "Peptides_B"].dropna().unique()
         
         # Initialize state for highlighting
         if "highlight_a" not in st.session_state:
