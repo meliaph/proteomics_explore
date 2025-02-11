@@ -96,13 +96,20 @@ if main_file and tool_a_file and tool_b_file:
         st.write(f"Coverage TOOL-B: {coverage_b:.2f}%")
         st.write(f"Total Coverage: {total_coverage:.2f}%")
         
-        # Coverage visualization
+        # Coverage visualization (horizontal bar chart)
         fig, ax = plt.subplots()
-        ax.bar(["TOOL-A", "TOOL-B", "Total"], [coverage_a, coverage_b, total_coverage], color=["red", "blue", "green"])
-        ax.set_ylabel("Coverage (%)")
+        bars = ax.barh(["TOOL-A", "TOOL-B", "Total"], [coverage_a, coverage_b, total_coverage], color=["red", "blue", "green"])
+        
+        # Annotate the bars with their values
+        for bar in bars:
+            width = bar.get_width()
+            ax.text(width + 1, bar.get_y() + bar.get_height()/2, f'{width:.2f}%', va='center')
+        
+        ax.set_xlabel("Coverage (%)")
         ax.set_title("Coverage Comparison")
-        ax.set_ylim(0, 100)
+        ax.set_xlim(0, 100)
         st.pyplot(fig)
+
              
         
 
