@@ -36,52 +36,53 @@ if main_file and tool_a_file and tool_b_file:
     # Dropdown for protein selection
     selected_protein = st.selectbox("Select a Protein Name", merged_df["ProteinName"].dropna().unique())
     
-    # Extract sequence and peptides
-    sequence = merged_df.loc[merged_df["ProteinName"] == selected_protein, "Sequence"].values[0]
-    peptides_a = merged_df.loc[merged_df["ProteinName"] == selected_protein, "Peptides_A"].dropna().unique()
-    peptides_b = merged_df.loc[merged_df["ProteinName"] == selected_protein, "Peptides_B"].dropna().unique()
-    
-    # Initialize state for highlighting
-    if "highlight_a" not in st.session_state:
-        st.session_state["highlight_a"] = False
-    if "highlight_b" not in st.session_state:
-        st.session_state["highlight_b"] = False
-    
-    # Toggle buttons for highlighting
-    if st.button("Highlight Peptides_A"):
-        st.session_state["highlight_a"] = not st.session_state["highlight_a"]
-    if st.button("Highlight Peptides_B"):
-        st.session_state["highlight_b"] = not st.session_state["highlight_b"]
-    
-    # Function to highlight sequence
-    def highlight_sequence(seq, peptides, color):
-        for pep in peptides:
-            if isinstance(pep, str):  # Ensure peptide is a string
-                seq = re.sub(f"({pep})", f"<span style='background-color:{color};'>{pep}</span>", seq)
-        return seq
-    
-    # Apply highlighting
-    highlighted_seq = sequence
-    if st.session_state["highlight_a"]:
-        highlighted_seq = highlight_sequence(highlighted_seq, peptides_a, "yellow")
-    if st.session_state["highlight_b"]:
-        highlighted_seq = highlight_sequence(highlighted_seq, peptides_b, "lightblue")
-    
-    # Coverage calculation
-    def calculate_coverage(seq, peptides):
-        covered = sum(len(pep) for pep in peptides if isinstance(pep, str) and pep in seq)
-        return (covered / len(seq)) * 100 if len(seq) > 0 else 0
-    
-    coverage_a = calculate_coverage(sequence, peptides_a) if st.session_state["highlight_a"] else 0
-    coverage_b = calculate_coverage(sequence, peptides_b) if st.session_state["highlight_b"] else 0
-    total_coverage = coverage_a + coverage_b
-    
-    # Display sequence with highlighting
-    st.subheader("Highlighted Protein Sequence")
-    st.markdown(f"""<div style='font-family:monospace; white-space:pre-wrap;'>{highlighted_seq}</div>""", unsafe_allow_html=True)
-    
-    # Display coverage
-    st.subheader("Coverage")
-    st.write(f"Coverage TOOL-A: {coverage_a:.2f}%")
-    st.write(f"Coverage TOOL-B: {coverage_b:.2f}%")
-    st.write(f"Total Coverage: {total_coverage:.2f}%")
+    if selected_protein:
+        # Extract sequence and peptides
+        sequence = merged_df.loc[merged_df["ProteinName"] == selected_protein, "Sequence"].values[0]
+        peptides_a = merged_df.loc[merged_df["ProteinName"] == selected_protein, "Peptides_A"].dropna().unique()
+        peptides_b = merged_df.loc[merged_df["ProteinName"] == selected_protein, "Peptides_B"].dropna().unique()
+        
+        # Initialize state for highlighting
+        if "highlight_a" not in st.session_state:
+            st.session_state["highlight_a"] = False
+        if "highlight_b" not in st.session_state:
+            st.session_state["highlight_b"] = False
+        
+        # Toggle buttons for highlighting
+        if st.button("Highlight Peptides_A"):
+            st.session_state["highlight_a"] = not st.session_state["highlight_a"]
+        if st.button("Highlight Peptides_B"):
+            st.session_state["highlight_b"] = not st.session_state["highlight_b"]
+        
+        # Function to highlight sequence
+        def highlight_sequence(seq, peptides, color):
+            for pep in peptides:
+                if isinstance(pep, str):  # Ensure peptide is a string
+                    seq = re.sub(f"({pep})", f"<span style='background-color:{color};'>{pep}</span>", seq)
+            return seq
+        
+        # Apply highlighting
+        highlighted_seq = sequence
+        if st.session_state["highlight_a"]:
+            highlighted_seq = highlight_sequence(highlighted_seq, peptides_a, "yellow")
+        if st.session_state["highlight_b"]:
+            highlighted_seq = highlight_sequence(highlighted_seq, peptides_b, "lightblue")
+        
+        # Coverage calculation
+        def calculate_coverage(seq, peptides):
+            covered = sum(len(pep) for pep in peptides if isinstance(pep, str) and pep in seq)
+            return (covered / len(seq)) * 100 if len(seq) > 0 else 0
+        
+        coverage_a = calculate_coverage(sequence, peptides_a) if st.session_state["highlight_a"] else 0
+        coverage_b = calculate_coverage(sequence, peptides_b) if st.session_state["highlight_b"] else 0
+        total_coverage = coverage_a + coverage_b
+        
+        # Display sequence with highlighting
+        st.subheader("Highlighted Protein Sequence")
+        st.markdown(f"""<div style='font-family:monospace; white-space:pre-wrap;'>{highlighted_seq}</div>""", unsafe_allow_html=True)
+        
+        # Display coverage
+        st.subheader("Coverage")
+        st.write(f"Coverage TOOL-A: {coverage_a:.2f}%")
+        st.write(f"Coverage TOOL-B: {coverage_b:.2f}%")
+        st.write(f"Total Coverage: {total_coverage:.2f}%")
