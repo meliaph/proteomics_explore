@@ -143,9 +143,9 @@ if main_file and tool_a_file and tool_b_file:
 
         # Display Simplified-Semi-Tryptic Count
         st.subheader("Simplified-Semi-Tryptic Count")
-        st.write(f"Coverage TOOL-A: {simplified_semi_tryptic_counts["TOOL-A"]:.0f}")
-        st.write(f"Coverage TOOL-B: {simplified_semi_tryptic_counts["TOOL-B"]:.0f}")
-        st.write(f"Total Coverage: {simplified_semi_tryptic_counts["TOOL-A"]+simplified_semi_tryptic_counts["TOOL-B"]:.0f}")
+        st.write(f"Simplified-Semi-Tryptic Peptide Count TOOL-A: {simplified_semi_tryptic_counts["TOOL-A"]:.0f}")
+        st.write(f"Simplified-Semi-Tryptic Peptide Count TOOL-B: {simplified_semi_tryptic_counts["TOOL-B"]:.0f}")
+        st.write(f"Total Simplified-Semi-Tryptic Peptide Count: {simplified_semi_tryptic_counts["TOOL-A"]+simplified_semi_tryptic_counts["TOOL-B"]:.0f}")
         
         # # Simplified-Semi-Tryptic Histogram
         # st.subheader("Simplified-Semi-Tryptic Peptide Count")
