@@ -3,6 +3,8 @@ import pandas as pd
 import re
 import matplotlib.pyplot as plt
 from functools import reduce
+from itertools import chain
+from markdown import markdown
 
 # Streamlit app title
 st.title("Protein Sequence Visualization with Simplified-Semi-Tryptic Classification")
@@ -46,30 +48,46 @@ if main_file and tool_a_file and tool_b_file:
         # Classification function
         def classify_simplified_semi_tryptic(protein_sequence, peptide):
             if pd.isna(protein_sequence) or pd.isna(peptide):
-                return "no_simplified_semi_tryptic"
+                return False
             
             index = protein_sequence.find(peptide)
             if index == -1:
-                return "no_simplified_semi_tryptic"
+                return False
 
-            if peptide[-1] in ['K', 'R']:
-                if index == 0 or protein_sequence[index - 1] not in ['K', 'R']:
-                    return "simplified_semi_tryptic"
+            if peptide[-1] in ['K', 'R'] and (index == 0 or protein_sequence[index - 1] not in ['K', 'R']):
+                return True
             
-            if peptide[-1] not in ['K', 'R']:
-                if index > 0 and protein_sequence[index - 1] in ['K', 'R']:
-                    return "simplified_semi_tryptic"
+            if peptide[-1] not in ['K', 'R'] and index > 0 and protein_sequence[index - 1] in ['K', 'R']:
+                return True
+            
+            return False
 
-            return "no_simplified_semi_tryptic"
+        # Highlight sequences
+        def highlight_sequence(sequence, peptides_a, peptides_b):
+            highlighted_sequence = sequence
+            for peptide in sorted(chain(peptides_a, peptides_b), key=len, reverse=True):
+                color = "red" if peptide in peptides_a else "blue"
+                if classify_simplified_semi_tryptic(sequence, peptide):
+                    highlighted_sequence = highlighted_sequence.replace(peptide, f'<u><span style="color:{color}">{peptide}</span></u>')
+                else:
+                    highlighted_sequence = highlighted_sequence.replace(peptide, f'<span style="color:{color}">{peptide}</span>')
+            highlighted_sequence = re.sub(r'([KR])', r'<span style="color:green">̲\1</span>', highlighted_sequence)
+            return highlighted_sequence
+        
+        highlighted_seq = highlight_sequence(sequence, peptides_a, peptides_b)
+        st.subheader("Protein Sequence Highlighted")
+        st.markdown(f'<pre style="font-size:16px; white-space:pre-wrap; word-wrap:break-word">{highlighted_seq}</pre>', unsafe_allow_html=True)
 
         # Classify peptides
         simplified_semi_tryptic_counts = {"TOOL-A": 0, "TOOL-B": 0}
+        simplified_semi_tryptic_list = {"TOOL-A": [], "TOOL-B": []}
         
         def classify_and_count(peptides, tool):
             count = 0
             for pep in peptides:
-                if classify_simplified_semi_tryptic(sequence, pep) == "simplified_semi_tryptic":
+                if classify_simplified_semi_tryptic(sequence, pep):
                     count += 1
+                    simplified_semi_tryptic_list[tool].append(pep)
             simplified_semi_tryptic_counts[tool] = count
 
         classify_and_count(peptides_a, "TOOL-A")
@@ -94,3 +112,8 @@ if main_file and tool_a_file and tool_b_file:
         ax.set_xlabel("Count")
         ax.set_title("Simplified-Semi-Tryptic Peptide Count")
         st.pyplot(fig)
+
+        # Display peptide lists
+        st.subheader("Simplified-Semi-Tryptic Peptides")
+        peptide_df = pd.DataFrame({"TOOL-A Peptides": simplified_semi_tryptic_list["TOOL-A"], "TOOL-B Peptides": simplified_semi_tryptic_list["TOOL-B"]})
+        st.dataframe(peptide_df)
