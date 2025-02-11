@@ -55,18 +55,20 @@ if main_file and tool_a_file and tool_b_file:
             st.session_state["highlight_b"] = not st.session_state["highlight_b"]
         
         # Function to highlight sequence
-        def highlight_sequence(seq, peptides, color):
-            for pep in peptides:
-                if isinstance(pep, str):  # Ensure peptide is a string
-                    seq = re.sub(f"({pep})", f"<span style='background-color:{color};'>{pep}</span>", seq)
+        def highlight_sequence(seq, peptides_a, peptides_b):
+            for pep in peptides_a:
+                if isinstance(pep, str):
+                    seq = re.sub(f"({pep})", f"<span style='background-color:yellow;'>{pep}</span>", seq)
+            for pep in peptides_b:
+                if isinstance(pep, str):
+                    seq = re.sub(f"({pep})", f"<span style='color:blue;'>{pep}</span>", seq)
             return seq
         
         # Apply highlighting
         highlighted_seq = sequence
-        if st.session_state["highlight_a"]:
-            highlighted_seq = highlight_sequence(highlighted_seq, peptides_a, "yellow")
-        if st.session_state["highlight_b"]:
-            highlighted_seq = highlight_sequence(highlighted_seq, peptides_b, "lightblue")
+        if st.session_state["highlight_a"] or st.session_state["highlight_b"]:
+            highlighted_seq = highlight_sequence(sequence, peptides_a if st.session_state["highlight_a"] else [], 
+                                                 peptides_b if st.session_state["highlight_b"] else [])
         
         # Coverage calculation
         def calculate_coverage(seq, peptides):
@@ -79,7 +81,7 @@ if main_file and tool_a_file and tool_b_file:
         
         # Display sequence with highlighting
         st.subheader("Highlighted Protein Sequence")
-        st.markdown(f"""<div style='font-family:monospace; white-space:pre-wrap;'>{highlighted_seq}</div>""", unsafe_allow_html=True)
+        st.markdown(f"""<div style='font-family:monospace; white-space:pre-wrap; word-wrap:break-word;'>{highlighted_seq}</div>""", unsafe_allow_html=True)
         
         # Display coverage
         st.subheader("Coverage")
